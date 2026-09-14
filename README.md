@@ -44,7 +44,7 @@ SuperNova is a private, module-based Discord bot built with **discord.py 2.0+** 
 
 2. **Install dependencies:**
    ```bash
-   pip install discord.py python-dotenv
+   pip install requirements.txt
    ```
 
 3. **Configure Environment Variables:**
