@@ -1,0 +1,20 @@
+# --- Environment Configurations ---
+.env
+
+# --- Python Cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- IDEs / Editors ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
