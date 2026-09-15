@@ -1,6 +1,6 @@
-# 🌌 SuperNova
+# 🌌 SkyHelp
 
-SuperNova is a private, module-based Discord bot built with **discord.py 2.0+** using native slash commands. While designed and hosted specifically for a private community server, the codebase is entirely open-source, extensible, and open for developer contributions.
+SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** using native slash commands. While designed and hosted specifically for a private community server, the codebase is entirely open-source, extensible, and open for developer contributions.
 
 ## 🚀 Features
 
@@ -12,7 +12,7 @@ SuperNova is a private, module-based Discord bot built with **discord.py 2.0+** 
 ## 📁 Project Structure
 
 ```text
-├── SuperNova/
+├── SkyHelp/
 │   ├── commands/          # Application slash command cogs
 │   │   ├── ping.py
 │   │   ├── purge.py
@@ -39,7 +39,7 @@ SuperNova is a private, module-based Discord bot built with **discord.py 2.0+** 
 1. **Clone the repository:**
    ```bash
    git clone https://github.com
-   cd SuperNova
+   cd SkyHelp
    ```
 
 2. **Install dependencies:**
