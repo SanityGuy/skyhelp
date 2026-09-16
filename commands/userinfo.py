@@ -71,7 +71,7 @@ class UserInfo(commands.Cog):
             text=f"Requested by {interaction.user.name}", 
             icon_url=interaction.user.display_avatar.url
         )
-        
+
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot: commands.Bot):

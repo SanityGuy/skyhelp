@@ -1,6 +1,6 @@
-# 🌌 SuperNova
+# SkyHelp
 
-SuperNova is a private, module-based Discord bot built with **discord.py 2.0+** using native slash commands. While designed and hosted specifically for a private community server, the codebase is entirely open-source, extensible, and open for developer contributions.
+SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** using native slash commands. While designed and hosted specifically for a private community server, the codebase is entirely open-source, extensible, and open for developer contributions.
 
 ## 🚀 Features
 
@@ -12,18 +12,19 @@ SuperNova is a private, module-based Discord bot built with **discord.py 2.0+** 
 ## 📁 Project Structure
 
 ```text
-├── SuperNova/
+├── SkyHelp/
 │   ├── commands/          # Application slash command cogs
+│   │   ├── leveling_commands.py
 │   │   ├── ping.py
 │   │   ├── purge.py
 │   │   └── userinfo.py
 │   ├── listeners/         # Event handlers (on_message, on_member_join, etc.)
+|   │   ├── button_events.py
 │   │   ├── greet.py
-│   │   ├── joinleave.py
+│   │   ├── leveling_listener.py
+│   │   ├── member_events.py
 │   │   ├── messages.py
 │   │   ├── startup.py
-│   │   └── swear_words.txt
-│   ├── .env               # Local environment secrets (Token)
 │   ├── .gitignore         # Untracked runtime configurations
 │   ├── client.py          # Custom Bot initialization subclass
 │   └── main.py            # Main gateway runner application
@@ -39,7 +40,7 @@ SuperNova is a private, module-based Discord bot built with **discord.py 2.0+** 
 1. **Clone the repository:**
    ```bash
    git clone https://github.com
-   cd SuperNova
+   cd SkyHelp
    ```
 
 2. **Install dependencies:**
