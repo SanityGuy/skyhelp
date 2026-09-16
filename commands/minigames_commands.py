@@ -2,37 +2,56 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import random
-
+from pathlib import Path
+from typing import Literal
 class Minigames(commands.Cog):
 
     BALL_RESPONSES = ["It is certain", "It is decidedly so", "Without a doubt", "Yes definitely", "You may rely on it", "As I see it yes", "Most likely", "Outlook good", "Yes", "Signs point to yes", "Reply hazy try again", "Ask again later", "Better not tell you now", "Cannot predict now", "Concentrate and ask again", "Don't count on it", "My reply is no", "My sources say no", "Outlook not so good", "Very doubtful"]
-
+    
     def __init__(self, bot: commands.Bot):
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        
         self.bot = bot
         self.photos = {
-            "heads": "./miniassets/coinstails/heads.png",
-            "tails": "./miniassets/coinstails/tails.png"
+            "heads": BASE_DIR / "commands" / "miniassets" / "coinhead" / "heads.png",
+            "tails": BASE_DIR / "commands" / "miniassets" / "cointails" / "tails.png",
+            "8ball": BASE_DIR / "commands" / "miniassets" / "balls" / "8ball.png"
         }
 
     @app_commands.command(name="magic8ball", description="Ask a question and unveil the answer.")
     async def magic8ball(self, interaction: discord.Interaction, question: str):
+        ballfile = discord.File(self.photos["8ball"], filename="8ball.png")
+        imageurl = "attachment://8ball.png"
+        
         ballembed = discord.Embed(title=question, description=random.choice(self.BALL_RESPONSES), color=discord.Color.random())
+        ballembed.set_thumbnail(url=imageurl)
         ballembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
-        await interaction.response.send_message(embed=ballembed)
+        await interaction.response.send_message(embed=ballembed, file=ballfile)
 
     @app_commands.command(name="coinflip", description="Flip a coin.")
-    async def coinflip(self, interaction: discord.Interaction):
-        randomchoice = random.choice(["Heads", "Tails"])
+    async def coinflip(self, interaction: discord.Interaction, choice: Literal["Heads", "Tails"] | None = None):
+        result = random.choice(["Heads", "Tails"])
+        
+        if choice is not None:
+            isCorrect = choice == result
+            verdict = "Correct!" if isCorrect else "Incorrect!"
+            color = discord.Color.green() if isCorrect else discord.Color.red()
+        else:
+            color = discord.Color.random()
 
-        if randomchoice == "Heads":
+        if result == "Heads":
             coinfile = discord.File(self.photos["heads"], filename="heads.png")
             imageurl = "attachment://heads.png"
         else:
             coinfile = discord.File(self.photos["tails"], filename="tails.png")
             imageurl = "attachment://tails.png"
 
-        coinembed = discord.Embed(title="Coin Flip", description=randomchoice, color=discord.Color.random())
+        coinembed = discord.Embed(title="Coin Flip", description="You can bet a coinflip or make it fully random!\nUsage: */coinflip <heads/tails>* **(optional)**", color=color)
         coinembed.set_thumbnail(url=imageurl)
+        coinembed.add_field(name="Result", value=result)
+        if choice is not None:
+            coinembed.add_field(name="Verdict", value=verdict)
+            
         coinembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
         await interaction.response.send_message(embed=coinembed, file=coinfile)
@@ -62,6 +81,7 @@ class Minigames(commands.Cog):
         shipembed = discord.Embed(title=f"{first.display_name} & {second.display_name}", description=f"{interaction.user.mention} has shipped {first.mention} with {second.mention}!\nLet's see how it goes!", color=colorchoice)
         shipembed.add_field(name="Percentage", value=f"{lovePercent}%")
         shipembed.add_field(name="Possibility", value=yesOrNo)
+        shipembed.set_thumbnail
         shipembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
         await interaction.response.send_message(embed=shipembed)
@@ -74,7 +94,10 @@ class Minigames(commands.Cog):
         await interaction.response.send_message(embed=diceembed)
 
     @app_commands.command(name="avatar", description="Get an avatar.")
-    async def avatar(self, interaction: discord.Interaction, person: discord.Member):
+    async def avatar(self, interaction: discord.Interaction, person: discord.Member | None = None):
+        if person is None:
+            person = interaction.user
+        
         avatarembed = discord.Embed(title=f"{person.display_name}'s Avatar", description=f"Via link [{person.display_name}'s Avatar]({person.display_avatar.url})", color=person.color)
         avatarembed.set_thumbnail(url=person.display_avatar.url)
         avatarembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
@@ -89,10 +112,10 @@ class Minigames(commands.Cog):
             await interaction.response.send_message("Rating must be between 1 and 10!", ephemeral=True)
             return
 
-        rateembed = discord.Embed(title=f"{person.display_name}'s Rating", description=f"{interaction.user.mention} has rated {person.mention} with a rating of **{rating}/10**!", color=person.color)
+        rateembed = discord.Embed(title=f"{person.display_name}'s Rating", description=f"{interaction.user.mention} has rated {person.mention}!", color=person.color)
         rateembed.add_field(name="Rating", value=f"{rating}/10")
         rateembed.set_thumbnail(url=person.display_avatar.url)
-        rateembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+        rateembed.set_footer(text=f"Rated by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
         await interaction.response.send_message(embed=rateembed)
 

@@ -12,6 +12,9 @@ if not TOKEN:
 
 bot = SouyanBot()
 
-print(f"Invite Link: {INVITE_LINK}")
+if not INVITE_LINK:
+    print("No invite link provided.")
+else:
+    print(f"Invite Link: {INVITE_LINK}")
 
 bot.run(TOKEN)
