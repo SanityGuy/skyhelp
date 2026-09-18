@@ -1,4 +1,4 @@
-# SkyHelp
+# 🌌 SkyHelp
 
 SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** using native slash commands. While designed and hosted specifically for a private community server, the codebase is entirely open-source, extensible, and open for developer contributions.
 
@@ -45,7 +45,7 @@ SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** us
 
 2. **Install dependencies:**
    ```bash
-   pip install discord.py python-dotenv
+   pip install requirements.txt
    ```
 
 3. **Configure Environment Variables:**
