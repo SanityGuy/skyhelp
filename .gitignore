@@ -1,6 +1,9 @@
 # --- Environment Configurations ---
 .env
 
+# --- Databases ---
+leveling.db
+
 # --- Python Cache ---
 __pycache__/
 *.py[cod]

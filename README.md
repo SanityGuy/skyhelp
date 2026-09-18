@@ -14,16 +14,17 @@ SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** us
 ```text
 ├── SkyHelp/
 │   ├── commands/          # Application slash command cogs
+│   │   ├── leveling_commands.py
 │   │   ├── ping.py
 │   │   ├── purge.py
 │   │   └── userinfo.py
 │   ├── listeners/         # Event handlers (on_message, on_member_join, etc.)
+|   │   ├── button_events.py
 │   │   ├── greet.py
-│   │   ├── joinleave.py
+│   │   ├── leveling_listener.py
+│   │   ├── member_events.py
 │   │   ├── messages.py
 │   │   ├── startup.py
-│   │   └── swear_words.txt
-│   ├── .env               # Local environment secrets (Token)
 │   ├── .gitignore         # Untracked runtime configurations
 │   ├── client.py          # Custom Bot initialization subclass
 │   └── main.py            # Main gateway runner application
