@@ -13,7 +13,7 @@ class Minigames(commands.Cog):
         
         self.bot = bot
         self.photos = {
-            "heads": BASE_DIR / "commands" / "miniassets" / "coinhead" / "heads.png",
+            "heads": BASE_DIR / "commands" / "miniassets" / "coinheads" / "heads.png",
             "tails": BASE_DIR / "commands" / "miniassets" / "cointails" / "tails.png",
             "8ball": BASE_DIR / "commands" / "miniassets" / "balls" / "8ball.png"
         }
