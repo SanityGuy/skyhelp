@@ -168,13 +168,13 @@ class Minigames(commands.Cog):
     async def rockpaperscissors(self, interaction: discord.Interaction, choice: Literal["Rock", "Paper", "Scissors"] | None = None):
         await interaction.response.defer()
         
-        botresult = random.choice(["rock", "paper", "scissors"])
-        userresult = choice.lower() if choice else random.choice(["rock", "paper", "scissors"])
+        botresult = random.choice(["Rock", "Paper", "Scissors9"])
+        userresult = choice.lower() if choice else random.choice(["Rock", "Paper", "Scissors"])
 
         beats = {
-            "rock": "scissors",
-            "paper": "rock",
-            "scissors": "paper"
+            "Rock": "Scissors",
+            "Paper": "Rock",
+            "Scissors": "Paper"
         }
 
         if botresult == userresult:
