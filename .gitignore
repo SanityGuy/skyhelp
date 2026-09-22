@@ -2,7 +2,9 @@
 .env
 
 # --- Databases ---
-leveling.db
+*.db
+leveling.db-wal
+leveling.db-shm
 
 # --- Python Cache ---
 __pycache__/

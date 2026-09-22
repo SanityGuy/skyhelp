@@ -26,9 +26,6 @@ class StartupListener(commands.Cog):
         next_delay = random.randint(15, 30)
         self.change_status.change_interval(seconds=next_delay)
 
-        print(f"Current status: {self.bot.status}")
-        print(f"Status changed to {new_activity.name} in {next_delay} seconds")
-
     @commands.Cog.listener()
     async def on_ready(self):
         print(f"Logged in as {self.bot.user} (ID: {self.bot.user.id})")
@@ -44,6 +41,9 @@ class StartupListener(commands.Cog):
             print("Failed to send DM, Owner might have DMs disabled.")
         except Exception as e:
             print(f"Startup DM failed to send: {e}")
+
+        
+        print(f"Current Status: {self.bot.status}")
 
     def cog_unload(self):
         self.change_status.cancel()
