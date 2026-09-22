@@ -10,8 +10,8 @@ from discord.ext import commands
 DATABASE = "leveling.db"
 
 XP_COOLDOWN_MS = 60_000
-MIN_XP = 15
-MAX_XP = 29
+MIN_XP = 5
+MAX_XP = 15
 
 XP_BASE = 50
 
@@ -183,14 +183,14 @@ class LevelingListener(commands.Cog):
         if unlocked_roles:
             roles = ", ".join(unlocked_roles)
             content = (
-                f"> ## 🎉 {member.mention} reached "
+                f"> ## 🎉 {member.mention} has ranked up to "
                 f"**Level {new_level}**!\n"
                 f"> 🔓 Unlocked: {roles}"
             )
 
         else:
             content = (
-                f"> ## 🎉 {member.mention} reached "
+                f"> ## 🎉 {member.mention} has ranked up to "
                 f"**Level {new_level}**!"
             )
 
