@@ -9,7 +9,7 @@ from discord.ext import commands
 
 DATABASE = "leveling.db"
 
-XP_BASE = 50
+XP_BASE = 75
 
 ROLE_REWARDS = {
     5: 1540138906119315530,

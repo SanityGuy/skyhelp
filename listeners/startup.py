@@ -1,11 +1,30 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
+import random
 
 
 class StartupListener(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.change_status.start()
+
+    STATUS_LIST = [
+        discord.Game(name="SkyHelp is made by SouyanDev🌌"),
+        discord.Activity(type=discord.ActivityType.watching, name="Watching over the SkyFlix Server"),
+        discord.Activity(type=discord.ActivityType.listening, name="Listening to your commands"),
+        discord.Game(name="Try some minigames! /coinflip")
+    ]
+
+    @tasks.loop(seconds=20)
+    async def change_status(self):
+        await self.bot.wait_until_ready()
+        
+        new_activity = random.choice(self.STATUS_LIST)
+        await self.bot.change_presence(activity=new_activity)
+
+        next_delay = random.randint(15, 30)
+        self.change_status.change_interval(seconds=next_delay)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -20,9 +39,14 @@ class StartupListener(commands.Cog):
 
         except discord.Forbidden:
             print("Failed to send DM, Owner might have DMs disabled.")
-
         except Exception as e:
             print(f"Startup DM failed to send: {e}")
+
+        
+        print(f"Current Status: {self.bot.status}")
+
+    def cog_unload(self):
+        self.change_status.cancel()
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(StartupListener(bot))

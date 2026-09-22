@@ -4,32 +4,119 @@ from discord import app_commands
 import random
 from pathlib import Path
 from typing import Literal
+
+class RPSView(discord.ui.View):
+    def __init__(self, bot, author):
+        super().__init__(timeout=60)
+        self.bot = bot
+        self.author = author
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user != self.author:
+            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            return False
+        return True
+
+    async def process_game(self, interaction: discord.Interaction, user_choice: str):
+        if user_choice == "Random":
+            user_choice = random.choice(["Rock", "Paper", "Scissors"])
+
+        bot_choice = random.choice(["Rock", "Paper", "Scissors"])
+
+        beats = {
+            "Rock": "Scissors",
+            "Paper": "Rock",
+            "Scissors": "Paper"
+        }
+
+        if bot_choice == user_choice:
+            finalresult = "It's a tie!"
+            wincolor = discord.Color.gold()
+        elif beats[user_choice] == bot_choice:
+            finalresult = f"{interaction.user.mention} has won the match!"
+            wincolor = discord.Color.green()
+        else:
+            finalresult = f"{self.bot.user.mention} has won the match!"
+            wincolor = discord.Color.red()
+
+        rpsembed = discord.Embed(
+            title="RPS Results",
+            description="Here are the final results of the game Rock, Paper, & Scissors",
+            color=wincolor
+        )
+
+        rpsembed.add_field(name=f"{interaction.user.display_name}", value=user_choice)
+        rpsembed.add_field(name=f"{self.bot.user.display_name}", value=bot_choice)
+        rpsembed.add_field(name="Result", value=finalresult, inline=False)
+        rpsembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+
+        for child in self.children:
+            child.disabled = True
+
+        await interaction.response.edit_message(embed=rpsembed, view=self)
+        self.stop()
+
+    @discord.ui.button(label="Rock", style=discord.ButtonStyle.blurple, custom_id="rps_rock")
+    async def rock_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.process_game(interaction, "Rock")
+
+    @discord.ui.button(label="Paper", style=discord.ButtonStyle.blurple, custom_id="rps_paper")
+    async def paper_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.process_game(interaction, "Paper")
+
+    @discord.ui.button(label="Scissors", style=discord.ButtonStyle.blurple, custom_id="rps_scissors")
+    async def scissors_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.process_game(interaction, "Scissors")
+
+    @discord.ui.button(label="Random", style=discord.ButtonStyle.green, custom_id="rps_random")
+    async def random_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.process_game(interaction, "Random")
+
 class Minigames(commands.Cog):
 
     BALL_RESPONSES = ["It is certain", "It is decidedly so", "Without a doubt", "Yes definitely", "You may rely on it", "As I see it yes", "Most likely", "Outlook good", "Yes", "Signs point to yes", "Reply hazy try again", "Ask again later", "Better not tell you now", "Cannot predict now", "Concentrate and ask again", "Don't count on it", "My reply is no", "My sources say no", "Outlook not so good", "Very doubtful"]
     
     def __init__(self, bot: commands.Bot):
         BASE_DIR = Path(__file__).resolve().parent.parent
+        ASSETS = BASE_DIR / "commands" / "miniassets"
         
         self.bot = bot
         self.photos = {
-            "heads": BASE_DIR / "commands" / "miniassets" / "coinhead" / "heads.png",
-            "tails": BASE_DIR / "commands" / "miniassets" / "cointails" / "tails.png",
-            "8ball": BASE_DIR / "commands" / "miniassets" / "balls" / "8ball.png"
+            "heads": ASSETS / "coinsheads" / "heads.png",
+            "tails": ASSETS / "cointails" / "tails.png",
+            "8ball": ASSETS / "balls" / "8ball.png",
+            "dice1": ASSETS / "dices" / "dice_1.png",
+            "dice2": ASSETS / "dices" / "dice_2.png",
+            "dice3": ASSETS / "dices" / "dice_3.png",
+            "dice4": ASSETS / "dices" / "dice_4.png",
+            "dice5": ASSETS / "dices" / "dice_5.png",
+            "dice6": ASSETS / "dices" / "dice_6.png"
         }
+
+    @staticmethod
+    def set_requester_helper(embed: discord.Embed, interaction: discord.Interaction) -> discord.Embed:
+        embed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+        return embed
 
     @app_commands.command(name="magic8ball", description="Ask a question and unveil the answer.")
     async def magic8ball(self, interaction: discord.Interaction, question: str):
+        await interaction.response.defer()
+
         ballfile = discord.File(self.photos["8ball"], filename="8ball.png")
         imageurl = "attachment://8ball.png"
         
-        ballembed = discord.Embed(title=question, description=random.choice(self.BALL_RESPONSES), color=discord.Color.random())
+        ballembed = discord.Embed(title=question, description="You can ask any question and receive verdicts on them.", color=discord.Color.random())
         ballembed.set_thumbnail(url=imageurl)
-        ballembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
-        await interaction.response.send_message(embed=ballembed, file=ballfile)
+        ballembed.add_field(name="Verdict", value=random.choice(self.BALL_RESPONSES))
+
+        self.set_requester_helper(ballembed, interaction)
+
+        await interaction.followup.send(embed=ballembed, file=ballfile)
 
     @app_commands.command(name="coinflip", description="Flip a coin.")
     async def coinflip(self, interaction: discord.Interaction, choice: Literal["Heads", "Tails"] | None = None):
+        await interaction.response.defer()
+
         result = random.choice(["Heads", "Tails"])
         
         if choice is not None:
@@ -51,13 +138,15 @@ class Minigames(commands.Cog):
         coinembed.add_field(name="Result", value=result)
         if choice is not None:
             coinembed.add_field(name="Verdict", value=verdict)
-            
-        coinembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
-        await interaction.response.send_message(embed=coinembed, file=coinfile)
+        self.set_requester_helper(coinembed, interaction)
+
+        await interaction.followup.send(embed=coinembed, file=coinfile)
 
     @app_commands.command(name="ship", description="Ship a person with another person!")
     async def ship(self, interaction: discord.Interaction, first: discord.Member, second: discord.Member):
+        await interaction.response.defer()
+
         lovePercent = random.randint(1, 100)
         yesOrNo = ""
         colorchoice = random.choice([first.color, second.color])
@@ -81,43 +170,113 @@ class Minigames(commands.Cog):
         shipembed = discord.Embed(title=f"{first.display_name} & {second.display_name}", description=f"{interaction.user.mention} has shipped {first.mention} with {second.mention}!\nLet's see how it goes!", color=colorchoice)
         shipembed.add_field(name="Percentage", value=f"{lovePercent}%")
         shipembed.add_field(name="Possibility", value=yesOrNo)
-        shipembed.set_thumbnail
-        shipembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+        shipembed.set_thumbnail(url=random.choice([first.display_avatar.url, second.display_avatar.url]))
 
-        await interaction.response.send_message(embed=shipembed)
+        self.set_requester_helper(shipembed, interaction)
+
+        await interaction.followup.send(embed=shipembed)
 
     @app_commands.command(name="dice", description="Roll a dice.")
     async def dice(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+
         result = random.randint(1, 6)
-        diceembed = discord.Embed(title="Dice Roll", description=f"The dice has been rolled by {interaction.user.mention} and the result is {result}", color=discord.Color.random())
-        diceembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
-        await interaction.response.send_message(embed=diceembed)
+
+        dicefile = discord.File(self.photos[f"dice{result}"], filename=f"dice_{result}.png")
+        imageurl = f"attachment://dice_{result}.png"
+
+        diceembed = discord.Embed(title="Dice Roll", description=f"The dice has been rolled by {interaction.user.mention}!", color=discord.Color.random())
+        diceembed.add_field(name="Dice Result", value=f"{result}")
+        diceembed.set_thumbnail(url=imageurl)
+
+        self.set_requester_helper(diceembed, interaction)
+
+        await interaction.followup.send(embed=diceembed, file=dicefile)
 
     @app_commands.command(name="avatar", description="Get an avatar.")
     async def avatar(self, interaction: discord.Interaction, person: discord.Member | None = None):
+        await interaction.response.defer()
+
         if person is None:
             person = interaction.user
         
-        avatarembed = discord.Embed(title=f"{person.display_name}'s Avatar", description=f"Via link [{person.display_name}'s Avatar]({person.display_avatar.url})", color=person.color)
+        avatarembed = discord.Embed(title=f"{person.display_name}'s Avatar", description=f"This is the profile picture of the user. {person.mention}", color=person.color)
         avatarembed.set_thumbnail(url=person.display_avatar.url)
-        avatarembed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
-        await interaction.response.send_message(embed=avatarembed)
+        avatarembed.add_field(name="The User", value=person.mention)
+        avatarembed.add_field(name="Profile URL", value=f"[{person.display_name}'s Profile]({person.display_avatar.url})")
+
+        self.set_requester_helper(avatarembed, interaction)
+
+        await interaction.followup.send(embed=avatarembed)
 
     @app_commands.command(name="rate", description="Rate another user from 1 to 10!")
     async def rate(self, interaction: discord.Interaction, person: discord.Member, rating: int | None = None):
+        await interaction.response.defer()
+
         if rating is None:
             rating = random.randint(1, 10)
 
         if rating < 1 or rating > 10:
-            await interaction.response.send_message("Rating must be between 1 and 10!", ephemeral=True)
+            await interaction.followup.send("Rating must be between 1 and 10!", ephemeral=True)
             return
 
         rateembed = discord.Embed(title=f"{person.display_name}'s Rating", description=f"{interaction.user.mention} has rated {person.mention}!", color=person.color)
         rateembed.add_field(name="Rating", value=f"{rating}/10")
         rateembed.set_thumbnail(url=person.display_avatar.url)
-        rateembed.set_footer(text=f"Rated by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
-        await interaction.response.send_message(embed=rateembed)
+        self.set_requester_helper(rateembed, interaction)
+
+        await interaction.followup.send(embed=rateembed)
+
+    @app_commands.command(name="rps", description="Play rock paper scissors with a bot!")
+    async def rockpaperscissors(self, interaction: discord.Interaction, choice: Literal["Rock", "Paper", "Scissors"] | None = None):
+        if choice is None:
+            embed = discord.Embed(
+                title="Rock, Paper, Scissors",
+                description="Choose your weapon below to play against me!",
+                color=discord.Color.blurple()
+            )
+            view = RPSView(bot=self.bot, author=interaction.user)
+            self.set_requester_helper(embed, interaction)
+            await interaction.response.send_message(embed=embed, view=view)
+        else:
+            await interaction.response.defer()
+            
+            botresult = random.choice(["Rock", "Paper", "Scissors"])
+            
+            beats = {
+                "Rock": "Scissors",
+                "Paper": "Rock",
+                "Scissors": "Paper"
+            }
+
+            if botresult == choice:
+                finalresult = "It's a tie!"
+                wincolor = discord.Color.gold()
+            elif beats[choice] == botresult:
+                finalresult = f"{interaction.user.mention} has won the match!"
+                wincolor = discord.Color.green()
+            else:
+                finalresult = f"{self.bot.user.mention} has won the match!"
+                wincolor = discord.Color.red()
+
+            rpsembed = discord.Embed(
+                title="RPS Results",
+                description="Here are the final results of the game Rock, Paper, & Scissors",
+                color=wincolor
+            )
+
+            rpsembed.add_field(name=f"{self.bot.user.display_name}", value=botresult)
+            rpsembed.add_field(name=f"{interaction.user.display_name}", value=choice)
+            rpsembed.add_field(name="Result", value=finalresult, inline=False)
+
+            self.set_requester_helper(rpsembed, interaction)
+
+            await interaction.followup.send(embed=rpsembed)
+
+    @app_commands.command(name="rockpaperscissors", description="Play rock paper scissors with a bot!")
+    async def rps_alias(self, interaction: discord.Interaction, choice: Literal["Rock", "Paper", "Scissors"] | None = None):
+        await self.rockpaperscissors(interaction, choice)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Minigames(bot))
