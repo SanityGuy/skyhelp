@@ -73,4 +73,4 @@ We welcome contributions! Even though this bot runs live on a private community 
 5. Open a Pull Request
 
 ## 📄 License
-This project is licensed under the MIT License
+This project is licensed under the [MIT License](LICENSE)
