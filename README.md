@@ -15,8 +15,8 @@ SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** us
 ├── SkyHelp/
 │   ├── commands/          # Application slash command cogs
 |   |   ├── miniassets     # Minigame assets
-|
-│   |   ├── birthday.command.py   │   ├── leveling_commands.py
+|   │   ├── leveling_commands.py
+│   |   ├── birthday.command.py
 │   │   ├── minigames_commands.py
 |   │   ├── moderation_commands.py
 │   │   ├── ping.py
