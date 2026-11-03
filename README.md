@@ -15,12 +15,14 @@ SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** us
 ├── SkyHelp/
 │   ├── commands/          # Application slash command cogs
 |   |   ├── miniassets     # Minigame assets
-│   │   ├── leveling_commands.py
+|
+│   |   ├── birthday.command.py   │   ├── leveling_commands.py
 │   │   ├── minigames_commands.py
 |   │   ├── moderation_commands.py
 │   │   ├── ping.py
 │   │   ├── purge.py
 │   │   └── userinfo.py
+│   │   ├── server_info.py
 │   ├── listeners/         # Event handlers (on_message, on_member_join, etc.)
 |   │   ├── button_events.py
 │   │   ├── greet.py
@@ -56,6 +58,7 @@ SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** us
    ```env
    TOKEN=your_discord_bot_token_here
    ```
+   INVITE_LINK=your_optional_invite_link_here
 
 4. **Run the bot:**
    ```bash
@@ -65,7 +68,7 @@ SkyHelp is a private, module-based Discord bot built with **discord.py 2.0+** us
 ## 🤝 Contributing
 
 We welcome contributions! Even though this bot runs live on a private community server, the framework is built for anyone to build upon, test, or enhance.
-
+  And of course to promote transparency and porovide trust an& & safety for our clients/members & members
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
