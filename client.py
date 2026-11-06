@@ -1,9 +1,12 @@
-import os
+
+import logging
+from pathlib import Path
+
 import discord
 from discord.ext import commands
 
-class SouyanBot(commands.Bot):
 
+class SouyanBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
@@ -12,15 +15,36 @@ class SouyanBot(commands.Bot):
         super().__init__(command_prefix=[], intents=intents)
 
     async def setup_hook(self):
-        folders = ["commands", "listeners"]
+        folders = ["listeners", "commands"]
 
         for folder in folders:
-            if os.path.exists(folder):
-                for file in os.listdir(folder):
-                    if file.endswith(".py") and not file.startswith("__"):
-                        extension = f"{folder}.{file[:-3]}"
-                        print(f"Loading {extension}...")
-                        await self.load_extension(extension)
+            path = Path(folder)
 
-        synced = await self.tree.sync()
-        print(f"Synced {len(synced)} commands.")
+            if not path.exists():
+                logging.warning("Extension folder '%s' does not exist.", folder)
+                continue
+
+            for file in sorted(path.glob("*.py")):
+                if file.stem.startswith("_"):
+                    continue
+
+                extension = f"{folder}.{file.stem}"
+
+                try:
+                    await self.load_extension(extension)
+                    logging.info("Loaded extension: %s", extension)
+                except commands.ExtensionError:
+                    logging.exception("Failed to load extension: %s", extension)
+
+        try:
+            synced = await self.tree.sync()
+            logging.info("Successfully synchronized %s slash commands.", len(synced))
+        except discord.HTTPException:
+            logging.exception("Failed to synchronize slash commands.")
+
+    async def on_error(self, event: str, *args, **kwargs):
+        logging.exception("Unhandled error in event: %s", event)
+
+    async def close(self):
+        logging.info("Shutting down SkyHelp...")
+        await super().close()
