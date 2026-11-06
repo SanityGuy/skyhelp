@@ -101,7 +101,7 @@ class MemberEventsListener(commands.Cog):
                     color=(
                         discord.Color.red()
                         if is_new_account
-                        else discord.Color.cyan()
+                        else discord.Color.blue()
                     ),
                 )
                 log_embed.set_thumbnail(url=member.display_avatar.url)
