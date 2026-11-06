@@ -1,52 +1,60 @@
+
+import logging
+import random
+
 import discord
 from discord.ext import commands, tasks
-import random
 
 
 class StartupListener(commands.Cog):
+    STATUS_LIST = [
+        discord.Game(name="SkyHelp is made by SouyanDev 🌌"),
+        discord.Activity(type=discord.ActivityType.watching, name="Watching over the SkyFlix Server"),
+        discord.Activity(type=discord.ActivityType.listening, name="Listening to your commands"),
+        discord.Game(name="Try some minigames! /coinflip"),
+        discord.Activity(type=discord.ActivityType.watching, name="Building the SkyFlix Network"),
+    ]
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.notified = False
         self.change_status.start()
-
-    STATUS_LIST = [
-        discord.Game(name="SkyHelp is made by SouyanDev🌌"),
-        discord.Activity(type=discord.ActivityType.watching, name="Watching over the SkyFlix Server"),
-        discord.Activity(type=discord.ActivityType.listening, name="Listening to your commands"),
-        discord.Game(name="Try some minigames! /coinflip")
-    ]
 
     @tasks.loop(seconds=20)
     async def change_status(self):
-        await self.bot.wait_until_ready()
-        
-        new_activity = random.choice(self.STATUS_LIST)
-        await self.bot.change_presence(activity=new_activity)
+        activity = random.choice(self.STATUS_LIST)
+        await self.bot.change_presence(activity=activity)
+        self.change_status.change_interval(seconds=random.randint(15, 30))
 
-        next_delay = random.randint(15, 30)
-        self.change_status.change_interval(seconds=next_delay)
+    @change_status.before_loop
+    async def before_status_change(self):
+        await self.bot.wait_until_ready()
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"Logged in as {self.bot.user} (ID: {self.bot.user.id})")
+        logging.info("Logged in as %s (ID: %s)", self.bot.user, self.bot.user.id)
+
+        if self.notified:
+            return
+
+        self.notified = True
 
         try:
             app_info = await self.bot.application_info()
             owner = app_info.owner
 
-            await owner.send(f"🤖 **{self.bot.user.name}** is now online and ready!")
-            print(f"Startup DM successfully sent to {owner.name}!")
+            if owner:
+                await owner.send(f"🤖 **{self.bot.user.name}** is now online and ready!")
+                logging.info("Startup DM sent to %s", owner)
 
         except discord.Forbidden:
-            print("Failed to send DM, Owner might have DMs disabled.")
-        except Exception as e:
-            print(f"Startup DM failed to send: {e}")
-
-        
-        print(f"Current Status: {self.bot.status}")
+            logging.warning("Could not send startup DM. Owner DMs are disabled.")
+        except discord.HTTPException:
+            logging.exception("Failed to send startup DM")
 
     def cog_unload(self):
         self.change_status.cancel()
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(StartupListener(bot))

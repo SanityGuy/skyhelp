@@ -1,3 +1,5 @@
+
+import logging
 import math
 import random
 import sqlite3
@@ -12,8 +14,8 @@ DATABASE = "leveling.db"
 XP_COOLDOWN_MS = 60_000
 MIN_XP = 5
 MAX_XP = 15
-
-XP_BASE = 50
+XP_BASE = 20
+EMBED_COLOR = discord.Color(0x2563EB)
 
 ROLE_REWARDS = {
     5: 1540138906119315530,
@@ -31,6 +33,7 @@ class LevelingListener(commands.Cog):
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=NORMAL")
+        self.db.execute("PRAGMA busy_timeout=10000")
         self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -39,7 +42,6 @@ class LevelingListener(commands.Cog):
                 xp INTEGER NOT NULL DEFAULT 0,
                 level INTEGER NOT NULL DEFAULT 0,
                 last_xp_time INTEGER NOT NULL DEFAULT 0,
-
                 PRIMARY KEY (guild_id, user_id)
             )
             """
@@ -48,220 +50,119 @@ class LevelingListener(commands.Cog):
 
     @staticmethod
     def xp_for_level(level: int) -> int:
-        """
-        Total XP required to reach a level.
-
-        Level 0 = 0 XP
-        Level 1 = 50 XP
-        Level 2 = 200 XP
-        Level 3 = 450 XP
-        Level 4 = 800 XP
-        Level 5 = 1250 XP
-        """
-
-        if level <= 0:
-            return 0
-
-        return XP_BASE * (level ** 2)
+        return XP_BASE * level ** 2 if level > 0 else 0
 
     @staticmethod
     def level_from_xp(xp: int) -> int:
-        """
-        Calculate the highest level reached from total XP.
-        """
+        return math.isqrt(max(0, xp) // XP_BASE)
 
-        if xp <= 0:
-            return 0
+    @staticmethod
+    def progress_bar(current: int, required: int, length: int = 12) -> str:
+        filled = min(length, int(current / required * length)) if required else length
+        return f"{'▰' * filled}{'▱' * (length - filled)}"
 
-        return math.isqrt(xp // XP_BASE)
-
-    def get_user(
-        self,
-        guild_id: int,
-        user_id: int,
-    ) -> tuple[int, int, int]:
-
+    def get_user(self, guild_id: int, user_id: int) -> tuple[int, int, int]:
         row = self.db.execute(
-            """
-            SELECT xp, level, last_xp_time
-            FROM users
-            WHERE guild_id = ?
-              AND user_id = ?
-            """,
+            "SELECT xp, level, last_xp_time FROM users WHERE guild_id = ? AND user_id = ?",
             (guild_id, user_id),
         ).fetchone()
 
-        if row is None:
-            return 0, 0, 0
+        return (row["xp"], self.level_from_xp(row["xp"]), row["last_xp_time"]) if row else (0, 0, 0)
 
-        return (
-            row["xp"],
-            row["level"],
-            row["last_xp_time"],
-        )
-
-    def save_user(
-        self,
-        guild_id: int,
-        user_id: int,
-        xp: int,
-        level: int,
-        last_xp_time: int,
-    ):
-
-        self.db.execute(
-            """
-            INSERT INTO users (
-                guild_id,
-                user_id,
-                xp,
-                level,
-                last_xp_time
+    def save_user(self, guild_id: int, user_id: int, xp: int, level: int, last_xp_time: int):
+        with self.db:
+            self.db.execute(
+                """
+                INSERT INTO users (guild_id, user_id, xp, level, last_xp_time)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(guild_id, user_id)
+                DO UPDATE SET xp = excluded.xp, level = excluded.level, last_xp_time = excluded.last_xp_time
+                """,
+                (guild_id, user_id, xp, level, last_xp_time),
             )
-            VALUES (?, ?, ?, ?, ?)
 
-            ON CONFLICT(guild_id, user_id)
-            DO UPDATE SET
-                xp = excluded.xp,
-                level = excluded.level,
-                last_xp_time = excluded.last_xp_time
-            """,
-            (
-                guild_id,
-                user_id,
-                xp,
-                level,
-                last_xp_time,
-            ),
-        )
-
-        self.db.commit()
-
-    async def sync_roles(
-        self,
-        guild: discord.Guild,
-        member: discord.Member,
-        level: int,
-    ):
-
-        for required_level, role_id in ROLE_REWARDS.items():
+    async def sync_roles(self, guild: discord.Guild, member: discord.Member, level: int):
+        for required_level, role_id in sorted(ROLE_REWARDS.items()):
             role = guild.get_role(role_id)
-            if role is None:
-                continue
 
-            should_have = level >= required_level
-            has_role = role in member.roles
+            if role is None or not role.is_assignable():
+                continue
 
             try:
-                if should_have and not has_role:
+                if level >= required_level and role not in member.roles:
                     await member.add_roles(role, reason=f"Reached Level {level}")
-
-                elif not should_have and has_role:
+                elif level < required_level and role in member.roles:
                     await member.remove_roles(role, reason=f"Level decreased to {level}")
-
-            except discord.Forbidden:
-                continue
             except discord.HTTPException:
-                continue
+                logging.exception("Failed to synchronize reward role %s for %s", role_id, member.id)
 
-    async def send_level_up_message(
-        self,
-        message: discord.Message,
-        old_level: int,
-        new_level: int,
-    ):
-
+    async def send_level_up_message(self, message: discord.Message, old_level: int, new_level: int, added_xp: int, total_xp: int):
         member = message.author
-        unlocked_roles = []
+        progress = total_xp - self.xp_for_level(new_level)
+        required = self.xp_for_level(new_level + 1) - self.xp_for_level(new_level)
 
-        for required_level, role_id in ROLE_REWARDS.items():
-            if old_level < required_level <= new_level:
-                role = message.guild.get_role(role_id)
-                if role:
-                    unlocked_roles.append(role.mention)
+        unlocked = [
+            message.guild.get_role(role_id).mention
+            for level, role_id in ROLE_REWARDS.items()
+            if old_level < level <= new_level and message.guild.get_role(role_id)
+        ]
 
-        if unlocked_roles:
-            roles = ", ".join(unlocked_roles)
-            content = (
-                f"> ## 🎉 {member.mention} has ranked up to "
-                f"**Level {new_level}**!\n"
-                f"> 🔓 Unlocked: {roles}"
-            )
+        embed = discord.Embed(
+            title="✦ SKYFLIX NETWORK",
+            description=f"## 🎉 Level Up!\nCongratulations {member.mention}!\nYou've reached **Level {new_level}**.",
+            color=EMBED_COLOR,
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.add_field(
+            name="📊 Level Progress",
+            value=f"**Level {new_level} → {new_level + 1}**\n`{self.progress_bar(progress, required)}`\n`{progress:,} / {required:,} XP`",
+            inline=False,
+        )
+        embed.add_field(name="✨ XP Earned", value=f"**+{added_xp:,} XP**", inline=True)
+        embed.add_field(name="💎 Total XP", value=f"**{total_xp:,} XP**", inline=True)
 
-        else:
-            content = (
-                f"> ## 🎉 {member.mention} has ranked up to "
-                f"**Level {new_level}**!"
-            )
+        if unlocked:
+            embed.add_field(name="🔓 Rewards Unlocked", value="\n".join(unlocked), inline=False)
+
+        embed.set_footer(text="SkyFlix Network • Leveling System")
 
         try:
-            await message.channel.send(content)
+            await message.channel.send(
+                embed=embed,
+                allowed_mentions=discord.AllowedMentions(users=[member], roles=False, everyone=False),
+            )
         except discord.HTTPException:
-            pass
+            logging.exception("Failed to send level-up message")
 
     @commands.Cog.listener()
-    async def on_message(
-        self,
-        message: discord.Message,
-    ):
-
-        if message.author.bot:
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or message.guild is None or not isinstance(message.author, discord.Member):
             return
 
-        if message.guild is None:
-            return
-
-        guild_id = message.guild.id
-        user_id = message.author.id
-
-        current_time = int(time.time() * 1000)
-
-        xp, old_level, last_xp_time = self.get_user(
-            guild_id,
-            user_id,
-        )
+        current_time = time.time_ns() // 1_000_000
+        xp, old_level, last_xp_time = self.get_user(message.guild.id, message.author.id)
 
         if current_time - last_xp_time < XP_COOLDOWN_MS:
             return
 
-        added_xp = random.randint(
-            MIN_XP,
-            MAX_XP,
-        )
-
+        added_xp = random.randint(MIN_XP, MAX_XP)
         new_xp = xp + added_xp
-
         new_level = self.level_from_xp(new_xp)
 
-        self.save_user(
-            guild_id,
-            user_id,
-            new_xp,
-            new_level,
-            current_time,
-        )
+        self.save_user(message.guild.id, message.author.id, new_xp, new_level, current_time)
 
         if new_level <= old_level:
             return
 
-        await self.sync_roles(
-            message.guild,
-            message.author,
-            new_level,
-        )
-
-        await self.send_level_up_message(
-            message,
-            old_level,
-            new_level,
-        )
+        await self.sync_roles(message.guild, message.author, new_level)
+        await self.send_level_up_message(message, old_level, new_level, added_xp, new_xp)
 
     def cog_unload(self):
         try:
-            self.db.commit()
             self.db.close()
         except sqlite3.Error:
-            pass
+            logging.exception("Failed to close leveling database")
 
 
 async def setup(bot: commands.Bot):
